@@ -131,12 +131,6 @@ It captures and adds to the *aura* of the room (the music, the mood, the atmosph
 
 ---
 
-## License
-
-MIT. Use it however you want. Attribution is nice but not required.
-
----
-
 ## Inspiration
 
 I wanted a "now playing" display that could pick up music from our turntable, phones, TV, whatever. So I built one.
