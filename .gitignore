@@ -6,56 +6,38 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Virtual environments
 venv/
 .venv/
 ENV/
 env/
 
+# Build artifacts
 build/
 dist/
 *.egg-info/
 .eggs/
 
 # =========================
-# Logs & runtime files
+# Runtime data
 # =========================
-*.log
-*.pid
-
-logs/
-debug/
-
-# =========================
-# Media / cache artifacts
-# =========================
+data/cache/
+data/logs/
 cache/
 album_cache/
 art_cache/
 
-*.png
-*.jpg
-*.jpeg
-*.webp
+*.log
+*.pid
 
 # =========================
-# OS / Raspberry Pi / Linux
+# OS / Linux / editors
 # =========================
 .DS_Store
 Thumbs.db
-
 *~
 .nfs*
 
-# =========================
-# Audio / device junk
-# =========================
-*.wav
-*.raw
-*.pcm
-
-# =========================
-# IDEs & editors
-# =========================
 .vscode/
 .idea/
 *.swp
@@ -72,7 +54,7 @@ secrets.py
 config.local.py
 
 # =========================
-# Systemd / deployment leftovers
+# systemd editor leftovers
 # =========================
 *.service.bak
 *.service~
@@ -81,5 +63,5 @@ config.local.py
 # Misc
 # =========================
 *_old.py
-*_test.py
 scratch/
+

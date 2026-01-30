@@ -1,0 +1,31 @@
+[Unit]
+Description=AuraFrame Now Playing Display
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/default/auraframe
+User=${AURAFRAME_USER}
+Group=${AURAFRAME_USER}
+WorkingDirectory=${AURAFRAME_DIR}
+ExecStart=${AURAFRAME_DIR}/scripts/run.sh
+
+# Load system-specific settings (user edits this file, not the unit)
+EnvironmentFile=/etc/default/auraframe
+
+User=%i
+Group=%i
+WorkingDirectory=${AURAFRAME_DIR}
+
+ExecStart=${AURAFRAME_DIR}/scripts/run.sh
+
+Restart=on-failure
+RestartSec=2
+
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+
