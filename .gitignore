@@ -1,0 +1,85 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+venv/
+.venv/
+ENV/
+env/
+
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# =========================
+# Logs & runtime files
+# =========================
+*.log
+*.pid
+
+logs/
+debug/
+
+# =========================
+# Media / cache artifacts
+# =========================
+cache/
+album_cache/
+art_cache/
+
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+# =========================
+# OS / Raspberry Pi / Linux
+# =========================
+.DS_Store
+Thumbs.db
+
+*~
+.nfs*
+
+# =========================
+# Audio / device junk
+# =========================
+*.wav
+*.raw
+*.pcm
+
+# =========================
+# IDEs & editors
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Environment & secrets
+# =========================
+.env
+.env.*
+*.env
+
+secrets.py
+config.local.py
+
+# =========================
+# Systemd / deployment leftovers
+# =========================
+*.service.bak
+*.service~
+
+# =========================
+# Misc
+# =========================
+*_old.py
+*_test.py
+scratch/
