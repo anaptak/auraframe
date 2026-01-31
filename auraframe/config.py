@@ -9,6 +9,8 @@ CHANNELS = 1
 
 RECORD_SECONDS = 5        # 6–9 is a good range
 RECOGNIZE_EVERY_S = 7     # how often to attempt recognition while listening is ON
+FAST_RECOGNIZE_EVERY_S = 2  # retry faster when a known track is showing but no match is found
+RECOGNIZE_TIMEOUT_S = 10    # cap recognition request time to avoid long hangs
 NETWORK_TIMEOUT_S = 6
 
 FULLSCREEN = True

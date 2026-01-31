@@ -14,6 +14,7 @@ from .config import (
     CHANNELS,
     DEVICE,
     NETWORK_TIMEOUT_S,
+    RECOGNIZE_TIMEOUT_S,
     RECORD_SECONDS,
     SAMPLE_RATE,
     SLIDESHOW_DIR,
@@ -52,7 +53,10 @@ async def shazam_recognize_from_wav_bytes(wav_bytes: bytes) -> Optional[dict]:
 
     shazam = Shazam()
     try:
-        return await shazam.recognize(str(SNIPPET_WAV_PATH))
+        return await asyncio.wait_for(
+            shazam.recognize(str(SNIPPET_WAV_PATH)),
+            timeout=RECOGNIZE_TIMEOUT_S,
+        )
     except Exception:
         return None
 
