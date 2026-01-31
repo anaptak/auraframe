@@ -59,6 +59,7 @@ class RecognizerThread(threading.Thread):
                     # No match: keep "listening" briefly, then switch to slideshow
                     with self.lock:
                         has_known_track = bool(self.state.title or self.state.artist)
+                        should_keep_nowplaying = self.state.mode == "nowplaying" or has_known_track
                         if self.state.last_match_ts == 0:
                             self.state.last_match_ts = now_ts
 
@@ -66,7 +67,7 @@ class RecognizerThread(threading.Thread):
                             if self.state.mode != "slideshow":
                                 self.state.mode = "slideshow"
                                 self.state.last_update_ts = now_ts
-                        elif has_known_track:
+                        elif should_keep_nowplaying:
                             if self.state.mode != "nowplaying":
                                 self.state.mode = "nowplaying"
                                 self.state.last_update_ts = now_ts
@@ -79,6 +80,7 @@ class RecognizerThread(threading.Thread):
                 with self.lock:
                     now_ts = time.time()
                     has_known_track = bool(self.state.title or self.state.artist)
+                    should_keep_nowplaying = self.state.mode == "nowplaying" or has_known_track
                     if self.state.last_match_ts == 0:
                         self.state.last_match_ts = now_ts
 
@@ -86,7 +88,7 @@ class RecognizerThread(threading.Thread):
                         if self.state.mode != "slideshow":
                             self.state.mode = "slideshow"
                             self.state.last_update_ts = now_ts
-                    elif has_known_track:
+                    elif should_keep_nowplaying:
                         if self.state.mode != "nowplaying":
                             self.state.mode = "nowplaying"
                             self.state.last_update_ts = now_ts
