@@ -58,12 +58,17 @@ class RecognizerThread(threading.Thread):
                 else:
                     # No match: keep "listening" briefly, then switch to slideshow
                     with self.lock:
+                        has_known_track = bool(self.state.title or self.state.artist)
                         if self.state.last_match_ts == 0:
                             self.state.last_match_ts = now_ts
 
                         if (now_ts - self.state.last_match_ts) >= IDLE_TO_SLIDESHOW_S:
                             if self.state.mode != "slideshow":
                                 self.state.mode = "slideshow"
+                                self.state.last_update_ts = now_ts
+                        elif has_known_track:
+                            if self.state.mode != "nowplaying":
+                                self.state.mode = "nowplaying"
                                 self.state.last_update_ts = now_ts
                         else:
                             if self.state.mode != "listening":
@@ -72,9 +77,23 @@ class RecognizerThread(threading.Thread):
 
             except Exception:
                 with self.lock:
-                    if self.state.mode != "listening":
-                        self.state.mode = "listening"
-                        self.state.last_update_ts = time.time()
+                    now_ts = time.time()
+                    has_known_track = bool(self.state.title or self.state.artist)
+                    if self.state.last_match_ts == 0:
+                        self.state.last_match_ts = now_ts
+
+                    if (now_ts - self.state.last_match_ts) >= IDLE_TO_SLIDESHOW_S:
+                        if self.state.mode != "slideshow":
+                            self.state.mode = "slideshow"
+                            self.state.last_update_ts = now_ts
+                    elif has_known_track:
+                        if self.state.mode != "nowplaying":
+                            self.state.mode = "nowplaying"
+                            self.state.last_update_ts = now_ts
+                    else:
+                        if self.state.mode != "listening":
+                            self.state.mode = "listening"
+                            self.state.last_update_ts = now_ts
 
             elapsed = time.time() - start
             sleep_for = max(1.0, RECOGNIZE_EVERY_S - elapsed)
