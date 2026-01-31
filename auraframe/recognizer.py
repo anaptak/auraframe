@@ -33,7 +33,7 @@ class RecognizerThread(threading.Thread):
                 info = recognize_track()
 
                 if info:
-                    title, artist, album, cover_url = info
+                    title, artist, album, year, cover_url = info
 
                     art_ok = False
                     with self.lock:
@@ -46,6 +46,7 @@ class RecognizerThread(threading.Thread):
                         self.state.title = title
                         self.state.artist = artist
                         self.state.album = album or ""
+                        self.state.year = year or ""
                         self.state.cover_url = cover_url or ""
                         if art_ok:
                             self.state.cover_path = str(COVER_PATH)

@@ -1,5 +1,6 @@
 import asyncio
 import io
+import re
 import wave
 from typing import Optional, Tuple
 
@@ -56,10 +57,10 @@ async def shazam_recognize_from_wav_bytes(wav_bytes: bytes) -> Optional[dict]:
         return None
 
 
-def extract_track_info(res: dict) -> Optional[Tuple[str, str, Optional[str], Optional[str]]]:
+def extract_track_info(res: dict) -> Optional[Tuple[str, str, Optional[str], Optional[str], Optional[str]]]:
     """
-    Returns (title, artist, album, cover_url)
-    Album is best-effort (may be None).
+    Returns (title, artist, album, year, cover_url)
+    Album/year are best-effort (may be None).
     """
     if not isinstance(res, dict):
         return None
@@ -78,23 +79,35 @@ def extract_track_info(res: dict) -> Optional[Tuple[str, str, Optional[str], Opt
         or None
     )
 
-    # Best-effort album extraction (often missing)
+    # Best-effort album/year extraction (often missing)
     album = None
+    year = None
     sections = track.get("sections") or []
     for s in sections:
         if not isinstance(s, dict):
             continue
         metadata = s.get("metadata") or []
         for item in metadata:
-            if isinstance(item, dict) and (item.get("title") or "").strip().lower() == "album":
+            if not isinstance(item, dict):
+                continue
+            title_key = (item.get("title") or "").strip().lower()
+            if title_key == "album" and not album:
                 album = item.get("text")
-                break
-        if album:
+            if title_key in {"released", "release date", "year"} and not year:
+                year = item.get("text")
+        if album and year:
             break
+
+    if not year:
+        year = track.get("release_date") or track.get("released") or None
+
+    if isinstance(year, str):
+        match = re.search(r"(19|20)\d{2}", year)
+        year = match.group(0) if match else year.strip() or None
 
     if not title and not artist:
         return None
-    return title, artist, album, cover_url
+    return title, artist, album, year, cover_url
 
 
 def download_image_to_path(url: str, out_path) -> bool:
@@ -107,7 +120,7 @@ def download_image_to_path(url: str, out_path) -> bool:
         return False
 
 
-def recognize_track() -> Optional[Tuple[str, str, Optional[str], Optional[str]]]:
+def recognize_track() -> Optional[Tuple[str, str, Optional[str], Optional[str], Optional[str]]]:
     wav_bytes = record_wav_bytes()
     res = asyncio.run(shazam_recognize_from_wav_bytes(wav_bytes))
     return extract_track_info(res) if res else None

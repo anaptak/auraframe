@@ -11,6 +11,7 @@ class AppState:
     title: str = ""
     artist: str = ""
     album: str = ""
+    year: str = ""
     cover_url: str = ""
     cover_path: str = COVER_PATH
 

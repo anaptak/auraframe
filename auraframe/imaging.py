@@ -119,6 +119,7 @@ def make_split_nowplaying_surface(
     title: str,
     artist: str,
     album: str,
+    year: str,
 ) -> pygame.Surface:
     sw, sh = screen_size
 
@@ -187,7 +188,10 @@ def make_split_nowplaying_surface(
     kicker = "NOW PLAYING"
     title_fit = ellipsize_pil(title, f_title, text_max_w, draw)
     artist_fit = ellipsize_pil(artist, f_artist, text_max_w, draw)
-    meta_fit = ellipsize_pil(album or "", f_meta, text_max_w, draw)
+    meta_text = album or ""
+    if year:
+        meta_text = f"{meta_text} ({year})" if meta_text else str(year)
+    meta_fit = ellipsize_pil(meta_text, f_meta, text_max_w, draw)
 
     def text_h(sample: str, font: ImageFont.FreeTypeFont) -> int:
         bb = draw.textbbox((0, 0), sample, font=font)
