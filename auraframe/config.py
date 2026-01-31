@@ -15,7 +15,8 @@ FULLSCREEN = True
 FPS = 60
 
 # Mode switching
-IDLE_TO_SLIDESHOW_S = 12   # if no match for 12s, switch to slideshow (while listening is ON)
+IDLE_TO_SLIDESHOW_S = 12        # if no match for 12s and no known track, switch to slideshow
+STALE_TRACK_TO_SLIDESHOW_S = 90 # if a known track is showing, wait longer before slideshow
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 
