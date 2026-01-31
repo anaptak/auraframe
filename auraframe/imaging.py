@@ -90,6 +90,43 @@ def ellipsize_pil(text: str, font: ImageFont.FreeTypeFont, max_w: int, draw: Ima
     return best
 
 
+def wrap_text_lines(
+    text: str,
+    font: ImageFont.FreeTypeFont,
+    max_w: int,
+    draw: ImageDraw.ImageDraw,
+    max_lines: int,
+) -> List[str]:
+    if not text:
+        return []
+    words = text.split()
+    if not words:
+        return []
+    lines: List[str] = []
+    idx = 0
+    while idx < len(words) and len(lines) < max_lines:
+        line_words: List[str] = []
+        while idx < len(words):
+            candidate = " ".join(line_words + [words[idx]])
+            if draw.textlength(candidate, font=font) <= max_w or not line_words:
+                line_words.append(words[idx])
+                idx += 1
+            else:
+                break
+        line = " ".join(line_words)
+        lines.append(line)
+    if idx < len(words) and lines:
+        remaining = " ".join([lines[-1]] + words[idx:])
+        lines[-1] = ellipsize_pil(remaining, font, max_w, draw)
+    cleaned = []
+    for line in lines:
+        if draw.textlength(line, font=font) > max_w:
+            cleaned.append(ellipsize_pil(line, font, max_w, draw))
+        else:
+            cleaned.append(line)
+    return cleaned
+
+
 def pil_rgba_to_surface(img: Image.Image) -> pygame.Surface:
     img = img.convert("RGBA")
     return pygame.image.frombuffer(img.tobytes(), img.size, "RGBA")
@@ -172,12 +209,14 @@ def make_split_nowplaying_surface(
     draw.line((right_x, 0, right_x, sh), fill=(35, 35, 35, 255), width=2)
 
     # Fonts
-    title_px = max(34, min(60, int(sh * 0.078)))
+    title_px = max(38, min(68, int(sh * 0.085)))
     artist_px = max(22, min(38, int(sh * 0.052)))
     meta_px = max(16, min(28, int(sh * 0.040)))
     kicker_px = max(14, min(20, int(sh * 0.032)))
+    subtitle_px = max(24, min(title_px - 4, int(title_px * 0.82)))
 
     f_title = ImageFont.truetype(FONT_SEMI, size=title_px)
+    f_title_sub = ImageFont.truetype(FONT_REG, size=subtitle_px)
     f_artist = ImageFont.truetype(FONT_REG, size=artist_px)
     f_meta = ImageFont.truetype(FONT_REG, size=meta_px)
     f_kicker = ImageFont.truetype(FONT_SEMI, size=kicker_px)
@@ -186,7 +225,15 @@ def make_split_nowplaying_surface(
     x0 = right_x + right_pad
 
     kicker = "NOW PLAYING"
-    title_fit = ellipsize_pil(title, f_title, text_max_w, draw)
+    title_main = title
+    subtitle = ""
+    if title and title.endswith(")") and " (" in title:
+        split_idx = title.rfind(" (")
+        if split_idx > 0:
+            title_main = title[:split_idx].strip()
+            subtitle = title[split_idx + 1 :].strip()
+    title_lines = wrap_text_lines(title_main, f_title, text_max_w, draw, max_lines=2 if subtitle else 3)
+    subtitle_lines = wrap_text_lines(subtitle, f_title_sub, text_max_w, draw, max_lines=1)
     artist_fit = ellipsize_pil(artist, f_artist, text_max_w, draw)
     meta_text = album or ""
     if year:
@@ -199,10 +246,25 @@ def make_split_nowplaying_surface(
 
     kicker_h = text_h("Ag", f_kicker)
     title_h = text_h("Ag", f_title)
+    subtitle_h = text_h("Ag", f_title_sub)
     artist_h = text_h("Ag", f_artist)
     meta_h = text_h("Ag", f_meta)
+    title_gap = int(RIGHT_GAP * 0.4)
+    title_block_h = title_h * max(1, len(title_lines))
+    if len(title_lines) > 1:
+        title_block_h += title_gap * (len(title_lines) - 1)
+    if subtitle_lines:
+        title_block_h += title_gap + subtitle_h
 
-    block_h = kicker_h + RIGHT_GAP + title_h + int(RIGHT_GAP * 0.8) + artist_h + int(RIGHT_GAP * 1.2) + meta_h
+    block_h = (
+        kicker_h
+        + RIGHT_GAP
+        + title_block_h
+        + int(RIGHT_GAP * 0.8)
+        + artist_h
+        + int(RIGHT_GAP * 1.2)
+        + meta_h
+    )
     y = (sh - block_h) // 2
 
     # Dot + kicker
@@ -213,8 +275,17 @@ def make_split_nowplaying_surface(
     draw.text((x0 + DOT_SIZE + 12, y), kicker, font=f_kicker, fill=TEXT_TERTIARY + (255,))
 
     y += kicker_h + RIGHT_GAP
-    draw.text((x0, y), title_fit, font=f_title, fill=TEXT_PRIMARY + (255,))
-    y += title_h + int(RIGHT_GAP * 0.8)
+    for idx, line in enumerate(title_lines or [""]):
+        draw.text((x0, y), line, font=f_title, fill=TEXT_PRIMARY + (255,))
+        y += title_h
+        if idx < len(title_lines) - 1:
+            y += title_gap
+    if subtitle_lines:
+        y += title_gap
+        for line in subtitle_lines:
+            draw.text((x0, y), line, font=f_title_sub, fill=TEXT_PRIMARY + (255,))
+            y += subtitle_h
+    y += int(RIGHT_GAP * 0.8)
     draw.text((x0, y), artist_fit, font=f_artist, fill=TEXT_SECONDARY + (255,))
     y += artist_h + int(RIGHT_GAP * 1.2)
     if meta_fit:
