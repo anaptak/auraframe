@@ -2,7 +2,7 @@ import threading
 import time
 
 from .audio import download_image_to_path, recognize_track
-from .config import COVER_PATH, IDLE_TO_SLIDESHOW_S, RECOGNIZE_EVERY_S
+from .config import COVER_PATH, IDLE_TO_SLIDESHOW_S, RECOGNIZE_EVERY_S, STALE_TRACK_TO_SLIDESHOW_S
 from .state import AppState
 
 
@@ -63,7 +63,8 @@ class RecognizerThread(threading.Thread):
                         if self.state.last_match_ts == 0:
                             self.state.last_match_ts = now_ts
 
-                        if (now_ts - self.state.last_match_ts) >= IDLE_TO_SLIDESHOW_S:
+                        idle_limit = STALE_TRACK_TO_SLIDESHOW_S if has_known_track else IDLE_TO_SLIDESHOW_S
+                        if (now_ts - self.state.last_match_ts) >= idle_limit:
                             if self.state.mode != "slideshow":
                                 self.state.mode = "slideshow"
                                 self.state.last_update_ts = now_ts
@@ -84,7 +85,8 @@ class RecognizerThread(threading.Thread):
                     if self.state.last_match_ts == 0:
                         self.state.last_match_ts = now_ts
 
-                    if (now_ts - self.state.last_match_ts) >= IDLE_TO_SLIDESHOW_S:
+                    idle_limit = STALE_TRACK_TO_SLIDESHOW_S if has_known_track else IDLE_TO_SLIDESHOW_S
+                    if (now_ts - self.state.last_match_ts) >= idle_limit:
                         if self.state.mode != "slideshow":
                             self.state.mode = "slideshow"
                             self.state.last_update_ts = now_ts
