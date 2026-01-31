@@ -112,13 +112,14 @@ def main():
             title = state.title
             artist = state.artist
             album = state.album
+            year = state.year
             cover_path = state.cover_path
             ts = state.last_update_ts
 
         # Update split now-playing surface when new track arrives
         if mode == "nowplaying" and ts != 0.0 and ts != last_np_rendered_ts and os.path.exists(cover_path):
             try:
-                new_np = make_split_nowplaying_surface(cover_path, (sw, sh), title, artist, album)
+                new_np = make_split_nowplaying_surface(cover_path, (sw, sh), title, artist, album, year)
 
                 # Crossfade only when we already have a previous frame
                 if last_frame is not None:
