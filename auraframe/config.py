@@ -12,6 +12,8 @@ CHANNELS = 1
 RECORD_SECONDS = 5        # 6–9 is a good range
 RECOGNIZE_EVERY_S = 7     # how often to attempt recognition while listening is ON
 NETWORK_TIMEOUT_S = 6
+RELEASE_UPGRADE_WINDOW_S = 2.0  # allow one quick upgrade to a better canonical release
+ENABLE_ALT_METADATA_LOOKUP = False  # optional provider lookup for alternate releases
 
 FULLSCREEN = True
 FPS = 60

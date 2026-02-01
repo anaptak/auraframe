@@ -1,9 +1,20 @@
+import logging
 import threading
 import time
 
 from .audio import download_image_to_path, recognize_track
-from .config import COVER_PATH, IDLE_TO_SLIDESHOW_S, RECOGNIZE_EVERY_S, STALE_TRACK_TO_SLIDESHOW_S
+from .canonical import CanonicalReleaseCache, build_candidate, resolve_canonical_release
+from .config import (
+    COVER_PATH,
+    ENABLE_ALT_METADATA_LOOKUP,
+    IDLE_TO_SLIDESHOW_S,
+    RECOGNIZE_EVERY_S,
+    RELEASE_UPGRADE_WINDOW_S,
+    STALE_TRACK_TO_SLIDESHOW_S,
+)
 from .state import AppState
+
+LOG = logging.getLogger("auraframe.recognizer")
 
 
 class RecognizerThread(threading.Thread):
@@ -12,6 +23,17 @@ class RecognizerThread(threading.Thread):
         self.state = state
         self.lock = lock
         self._stop = threading.Event()
+        self._canonical_cache = CanonicalReleaseCache()
+        self._current_choice_key = ""
+        self._current_choice_score = None
+        self._current_choice_ts = 0.0
+        self._current_choice_upgraded = False
+
+    def _alternate_candidates(self, primary: dict) -> list:
+        if not ENABLE_ALT_METADATA_LOOKUP:
+            return []
+        LOG.info("Alternate metadata lookup is enabled, but no providers are configured.")
+        return []
 
     def stop(self):
         self._stop.set()
@@ -34,6 +56,42 @@ class RecognizerThread(threading.Thread):
 
                 if info:
                     title, artist, album, year, cover_url = info
+                    primary = build_candidate(
+                        title,
+                        artist,
+                        album,
+                        year,
+                        cover_url,
+                        provider="shazam",
+                    )
+                    alternates = self._alternate_candidates(primary)
+                    best_release, best_score = resolve_canonical_release(
+                        primary,
+                        alternates=alternates,
+                        cache=self._canonical_cache,
+                    )
+
+                    key = CanonicalReleaseCache.make_key(
+                        best_release.get("artist") or artist,
+                        best_release.get("title") or title,
+                    )
+                    if key != self._current_choice_key:
+                        self._current_choice_key = key
+                        self._current_choice_score = None
+                        self._current_choice_ts = now_ts
+                        self._current_choice_upgraded = False
+
+                    should_accept = self._current_choice_score is None
+                    if not should_accept:
+                        is_better = best_score > (self._current_choice_score or 0.0)
+                        within_upgrade_window = (now_ts - self._current_choice_ts) <= RELEASE_UPGRADE_WINDOW_S
+                        if (
+                            is_better
+                            and within_upgrade_window
+                            and not self._current_choice_upgraded
+                        ):
+                            should_accept = True
+                            self._current_choice_upgraded = True
 
                     art_ok = False
                     with self.lock:
@@ -43,6 +101,21 @@ class RecognizerThread(threading.Thread):
                         prev_album = self.state.album
                         prev_year = self.state.year
                         prev_mode = self.state.mode
+
+                    if should_accept:
+                        self._current_choice_score = best_score
+                        self._current_choice_ts = now_ts
+                        title = best_release.get("title") or title
+                        artist = best_release.get("artist") or artist
+                        album = best_release.get("album") or album
+                        year = best_release.get("year") or year
+                        cover_url = best_release.get("cover_url") or cover_url
+                    else:
+                        title = prev_title
+                        artist = prev_artist
+                        album = prev_album
+                        year = prev_year
+                        cover_url = prev_url
 
                     if cover_url and cover_url != prev_url:
                         art_ok = download_image_to_path(cover_url, COVER_PATH)
