@@ -12,6 +12,7 @@ from .config import (
     RIGHT_BG,
     RIGHT_GAP,
     RIGHT_PAD,
+    ART_BORDER_INSET,
     ROUNDED_RADIUS,
     SHADOW_ALPHA,
     SHADOW_BLUR,
@@ -265,6 +266,7 @@ def make_split_nowplaying_surface(
     right_w = sw - right_x
     right_pad = scaled(RIGHT_PAD)
     right_gap = scaled(RIGHT_GAP)
+    art_border_inset = scaled(ART_BORDER_INSET)
 
     # Load art, center-crop square, resize
     img0 = Image.open(cover_path).convert("RGB")
@@ -303,8 +305,9 @@ def make_split_nowplaying_surface(
     meta_px = scaled(META_SIZE)
     kicker_px = scaled(KICKER_SIZE)
 
-    text_max_w = max(50, right_w - 2 * right_pad)
-    x0 = right_x + right_pad
+    text_anchor_x = right_x - art_border_inset
+    text_max_w = max(50, sw - text_anchor_x - right_pad)
+    x0 = text_anchor_x
 
     kicker = "NOW PLAYING"
     f_title = ImageFont.truetype(FONT_MED, size=title_px)
