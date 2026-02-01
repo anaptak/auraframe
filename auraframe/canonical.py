@@ -37,7 +37,7 @@ SUSPICIOUS_TOKENS = [
 ]
 
 ALLOWLIST_OVERRIDES = [
-    {"artist": "miles davis", "track": "so what", "album": "kind of blue"},
+    {"artist": "miles davis", "track": "so what", "album": "Kind of Blue"},
 ]
 
 OFFICIAL_PROVIDERS = {"shazam"}
@@ -88,13 +88,51 @@ def _allowlist_bonus(preferred: Dict[str, str], album: str) -> float:
     preferred_track = normalize_text(preferred.get("title"))
     album_norm = normalize_text(album)
     for entry in ALLOWLIST_OVERRIDES:
+        allowlist_album = normalize_text(entry["album"])
         if (
             preferred_artist == entry["artist"]
             and preferred_track == entry["track"]
-            and album_norm == entry["album"]
+            and album_norm == allowlist_album
         ):
             return 120.0
     return 0.0
+
+
+def _suspicious_tokens(album: str) -> List[str]:
+    album_norm = normalize_text(album)
+    return [token for token in SUSPICIOUS_TOKENS if token in album_norm]
+
+
+def _has_suspicious_tokens(album: str) -> bool:
+    return bool(_suspicious_tokens(album))
+
+
+def _apply_allowlist_override(
+    candidate: Dict[str, Optional[str]],
+    preferred: Dict[str, str],
+    logger: logging.Logger = LOG,
+) -> Dict[str, Optional[str]]:
+    preferred_artist = normalize_text(preferred.get("artist"))
+    preferred_track = normalize_text(preferred.get("title"))
+    if not preferred_artist or not preferred_track:
+        return candidate
+    album = candidate.get("album") or ""
+    album_norm = normalize_text(album)
+    for entry in ALLOWLIST_OVERRIDES:
+        if preferred_artist == entry["artist"] and preferred_track == entry["track"]:
+            canonical_album = entry["album"]
+            canonical_norm = normalize_text(canonical_album)
+            if album_norm != canonical_norm and canonical_norm in album_norm:
+                logger.info(
+                    "Allowlist override: forcing album '%s' for '%s' - '%s'",
+                    canonical_album,
+                    candidate.get("artist") or "",
+                    candidate.get("title") or "",
+                )
+                updated = dict(candidate)
+                updated["album"] = canonical_album
+                return updated
+    return candidate
 
 
 def score_release(
@@ -110,10 +148,10 @@ def score_release(
     if not album:
         score -= 30.0
 
-    for token in SUSPICIOUS_TOKENS:
-        if token in album_norm:
-            logger.info("Rejecting suspicious token '%s' in album '%s'", token, album)
-            score -= 40.0
+    tokens = _suspicious_tokens(album)
+    if tokens:
+        logger.info("Rejecting suspicious tokens %s in album '%s'", tokens, album)
+        score -= 40.0 * len(tokens)
 
     if YEAR_SUFFIX_RE.search(album):
         score -= 12.0
@@ -151,6 +189,10 @@ def choose_best_release(
         return {}, 0.0
 
     preferred_info = preferred or candidate_list[0]
+    candidate_list = [
+        _apply_allowlist_override(candidate, preferred_info, logger=logger)
+        for candidate in candidate_list
+    ]
     has_non_ep = any(not _has_ep_or_single(c.get("album") or "") for c in candidate_list)
 
     best = candidate_list[0]
@@ -231,7 +273,7 @@ def resolve_canonical_release(
     title = primary.get("title") or ""
     use_cache = cache and (artist or title)
     cached = cache.get(artist, title) if use_cache else None
-    if cached:
+    if cached and not _has_suspicious_tokens(cached.get("album") or ""):
         score = score_release(cached, primary, has_non_ep=True, logger=logger) + CACHE_BONUS
         return cached, score
 
@@ -240,7 +282,7 @@ def resolve_canonical_release(
         candidates.extend([c for c in alternates if c])
 
     best, best_score = choose_best_release(candidates, preferred=primary, logger=logger)
-    if use_cache:
+    if use_cache and not _has_suspicious_tokens(best.get("album") or ""):
         cache.set(artist, title, best)
     return best, best_score
 
