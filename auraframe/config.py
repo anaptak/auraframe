@@ -90,16 +90,16 @@ SPLIT_GAP = 46             # gap between art and right column
 SPLIT_ART_W_FRAC = 0.54    # cap art size by width fraction of screen
 RIGHT_PAD = 72             # padding inside right panel
 RIGHT_GAP = 22             # vertical rhythm
-TITLE_SIZE_BASE = 56       # fixed base title size (px)
-TITLE_SIZE_MIN = 38        # minimum title size when scaling down
+TITLE_SIZE_BASE = 64       # fixed base title size (px)
+TITLE_SIZE_MIN = 46        # minimum title size when scaling down
 TITLE_SIZE_MAX = TITLE_SIZE_BASE  # never scale above base size
 TITLE_BLOCK_MAX_RATIO = 0.26      # max title block height as fraction of screen
 TITLE_TRACKING_PX = 1             # subtle tracking for large titles
 TITLE_TRACKING_MIN_PX = 52        # only apply tracking above this size
 
 ARTIST_SIZE = 30          # fixed sizes for metadata
-META_SIZE = 22
-KICKER_SIZE = 14
+META_SIZE = 24
+KICKER_SIZE = 15
 
 ROUNDED_RADIUS = 26
 SHADOW_BLUR = 22
