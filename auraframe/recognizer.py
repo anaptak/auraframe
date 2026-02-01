@@ -38,22 +38,43 @@ class RecognizerThread(threading.Thread):
                     art_ok = False
                     with self.lock:
                         prev_url = self.state.cover_url
+                        prev_title = self.state.title
+                        prev_artist = self.state.artist
+                        prev_album = self.state.album
+                        prev_year = self.state.year
+                        prev_mode = self.state.mode
 
                     if cover_url and cover_url != prev_url:
                         art_ok = download_image_to_path(cover_url, COVER_PATH)
 
                     with self.lock:
-                        self.state.title = title
-                        self.state.artist = artist
-                        self.state.album = album or ""
-                        self.state.year = year or ""
-                        self.state.cover_url = cover_url or ""
-                        if art_ok:
-                            self.state.cover_path = str(COVER_PATH)
+                        next_album = album or ""
+                        next_year = year or ""
+                        next_cover_url = cover_url or ""
+
+                        content_changed = any(
+                            [
+                                title != prev_title,
+                                artist != prev_artist,
+                                next_album != prev_album,
+                                next_year != prev_year,
+                                next_cover_url != prev_url,
+                            ]
+                        )
+                        mode_changed = prev_mode != "nowplaying"
+
+                        if content_changed or mode_changed:
+                            self.state.title = title
+                            self.state.artist = artist
+                            self.state.album = next_album
+                            self.state.year = next_year
+                            self.state.cover_url = next_cover_url
+                            if art_ok:
+                                self.state.cover_path = str(COVER_PATH)
+                            self.state.mode = "nowplaying"
+                            self.state.last_update_ts = now_ts
 
                         self.state.last_match_ts = now_ts
-                        self.state.mode = "nowplaying"
-                        self.state.last_update_ts = now_ts
 
                 else:
                     # No match: keep "listening" briefly, then switch to slideshow
