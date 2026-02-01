@@ -2,7 +2,13 @@ import threading
 import time
 
 from .audio import download_image_to_path, recognize_track
-from .config import COVER_PATH, IDLE_TO_SLIDESHOW_S, RECOGNIZE_EVERY_S, STALE_TRACK_TO_SLIDESHOW_S
+from .config import (
+    COVER_PATH,
+    FAST_RECOGNIZE_EVERY_S,
+    IDLE_TO_SLIDESHOW_S,
+    RECOGNIZE_EVERY_S,
+    STALE_TRACK_TO_SLIDESHOW_S,
+)
 from .state import AppState
 
 
@@ -28,6 +34,7 @@ class RecognizerThread(threading.Thread):
 
             start = time.time()
             now_ts = time.time()
+            fast_retry = False
 
             try:
                 info = recognize_track()
@@ -81,6 +88,7 @@ class RecognizerThread(threading.Thread):
                     with self.lock:
                         has_known_track = bool(self.state.title or self.state.artist)
                         should_keep_nowplaying = self.state.mode == "nowplaying" or has_known_track
+                        fast_retry = has_known_track
                         if self.state.last_match_ts == 0:
                             self.state.last_match_ts = now_ts
 
@@ -103,6 +111,7 @@ class RecognizerThread(threading.Thread):
                     now_ts = time.time()
                     has_known_track = bool(self.state.title or self.state.artist)
                     should_keep_nowplaying = self.state.mode == "nowplaying" or has_known_track
+                    fast_retry = has_known_track
                     if self.state.last_match_ts == 0:
                         self.state.last_match_ts = now_ts
 
@@ -121,7 +130,8 @@ class RecognizerThread(threading.Thread):
                             self.state.last_update_ts = now_ts
 
             elapsed = time.time() - start
-            sleep_for = max(1.0, RECOGNIZE_EVERY_S - elapsed)
+            recognize_every = FAST_RECOGNIZE_EVERY_S if fast_retry else RECOGNIZE_EVERY_S
+            sleep_for = max(1.0, recognize_every - elapsed)
             for _ in range(int(sleep_for * 10)):
                 if self._stop.is_set():
                     break
