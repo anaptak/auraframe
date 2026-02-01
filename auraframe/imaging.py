@@ -242,8 +242,8 @@ def make_split_nowplaying_surface(
 
     # Fonts
     title_px = base_title_px
-    artist_px = max(22, min(38, int(sh * 0.052)))
-    meta_px = max(16, min(28, int(sh * 0.040)))
+    artist_px = max(24, min(42, int(sh * 0.056)))
+    meta_px = max(18, min(30, int(sh * 0.042)))
     kicker_px = max(14, min(20, int(sh * 0.032)))
 
     text_max_w = max(50, right_w - 2 * right_pad)
@@ -291,6 +291,8 @@ def make_split_nowplaying_surface(
     artist_h = text_h("Ag", f_artist)
     meta_h = text_h("Ag", f_meta)
     title_gap = int(RIGHT_GAP * 0.4)
+    title_to_artist_gap = int(RIGHT_GAP * 1.1)
+    artist_to_meta_gap = int(RIGHT_GAP * 1.3)
     title_block_h = title_h * max(1, len(title_lines))
     if len(title_lines) > 1:
         title_block_h += title_gap * (len(title_lines) - 1)
@@ -301,9 +303,9 @@ def make_split_nowplaying_surface(
         kicker_h
         + RIGHT_GAP
         + title_block_h
-        + int(RIGHT_GAP * 0.8)
+        + title_to_artist_gap
         + artist_h
-        + int(RIGHT_GAP * 1.2)
+        + artist_to_meta_gap
         + meta_h
     )
     y = (sh - block_h) // 2
@@ -326,9 +328,9 @@ def make_split_nowplaying_surface(
         for line in subtitle_lines:
             draw.text((x0, y), line, font=f_title_sub, fill=TEXT_PRIMARY + (255,))
             y += subtitle_h
-    y += int(RIGHT_GAP * 0.8)
+    y += title_to_artist_gap
     draw.text((x0, y), artist_fit, font=f_artist, fill=TEXT_SECONDARY + (255,))
-    y += artist_h + int(RIGHT_GAP * 1.2)
+    y += artist_h + artist_to_meta_gap
     if meta_fit:
         draw.text((x0, y), meta_fit, font=f_meta, fill=TEXT_TERTIARY + (255,))
 
