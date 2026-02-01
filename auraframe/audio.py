@@ -29,8 +29,14 @@ def ensure_dirs() -> None:
 def record_wav_bytes() -> bytes:
     """Record mono float32, convert to 16-bit PCM WAV bytes."""
     frames = int(SAMPLE_RATE * RECORD_SECONDS)
-    audio = sd.rec(frames, samplerate=SAMPLE_RATE, channels=CHANNELS, dtype="float32", device=DEVICE)
-    sd.wait()
+    sd.stop()
+    with sd.InputStream(
+        samplerate=SAMPLE_RATE,
+        channels=CHANNELS,
+        dtype="float32",
+        device=DEVICE,
+    ) as stream:
+        audio, _overflowed = stream.read(frames)
     x = np.clip(audio[:, 0], -1.0, 1.0)
     pcm16 = (x * 32767).astype(np.int16)
 
