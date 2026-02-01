@@ -213,8 +213,10 @@ def make_split_nowplaying_surface(
             return 0.0
         return draw.textlength(text, font=font)
 
+    base_title_px = max(38, min(68, int(sh * 0.085)))
+
     def scaled_title_px(title_text: str, has_subtitle: bool, max_width: int) -> int:
-        base_px = max(38, min(68, int(sh * 0.085)))
+        base_px = base_title_px
         max_px = max(base_px, min(110, int(sh * 0.14)))
         if not title_text:
             return base_px
@@ -239,7 +241,7 @@ def make_split_nowplaying_surface(
         return best_px
 
     # Fonts
-    title_px = max(38, min(68, int(sh * 0.085)))
+    title_px = base_title_px
     artist_px = max(22, min(38, int(sh * 0.052)))
     meta_px = max(16, min(28, int(sh * 0.040)))
     kicker_px = max(14, min(20, int(sh * 0.032)))
@@ -255,6 +257,13 @@ def make_split_nowplaying_surface(
         if split_idx > 0:
             title_main = title[:split_idx].strip()
             subtitle = title[split_idx + 1 :].strip()
+
+    if subtitle:
+        base_title_font = ImageFont.truetype(FONT_SEMI, size=title_px)
+        title_lines_full = wrap_text_lines(title, base_title_font, text_max_w, draw, max_lines=2)
+        if len(title_main) <= 12 and len(title_lines_full) <= 2:
+            title_main = title
+            subtitle = ""
 
     title_px = scaled_title_px(title_main, bool(subtitle), text_max_w)
     subtitle_px = max(24, min(title_px - 4, int(title_px * 0.82)))
