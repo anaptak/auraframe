@@ -294,9 +294,6 @@ def make_split_nowplaying_surface(
     rp = Image.new("RGBA", (max(1, right_w), sh), RIGHT_BG + (255,))
     canvas.paste(rp, (right_x, 0))
 
-    # Divider line
-    draw.line((right_x, 0, right_x, sh), fill=(35, 35, 35, 255), width=2)
-
     # Fonts
     title_px = min(scaled(TITLE_SIZE_BASE), scaled(TITLE_SIZE_MAX))
     title_px_min = scaled(TITLE_SIZE_MIN)
