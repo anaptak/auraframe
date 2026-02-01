@@ -42,9 +42,11 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 _FONT_LOG = logging.getLogger("auraframe.fonts")
 
 FONT_DIR = BASE_DIR / "assets" / "fonts"
+INTER_TTF = FONT_DIR / "Inter.ttf"
 INTER_REGULAR = FONT_DIR / "Inter-Regular.ttf"
 INTER_MEDIUM = FONT_DIR / "Inter-Medium.ttf"
 INTER_VARIABLE = FONT_DIR / "Inter-VariableFont.ttf"
+INTER_VARIABLE_OPSZ = FONT_DIR / "Inter-VariableFont_opsz,wght.ttf"
 FALLBACK_FONT = Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
 
 
@@ -69,12 +71,12 @@ def _resolve_font_path(label: str, candidates: List[Path], fallback: Path) -> st
 
 FONT_REG = _resolve_font_path(
     "Regular",
-    [INTER_REGULAR, INTER_VARIABLE],
+    [INTER_TTF, INTER_REGULAR, INTER_VARIABLE, INTER_VARIABLE_OPSZ],
     FALLBACK_FONT,
 )
 FONT_MED = _resolve_font_path(
     "Medium",
-    [INTER_MEDIUM, INTER_VARIABLE],
+    [INTER_TTF, INTER_MEDIUM, INTER_VARIABLE, INTER_VARIABLE_OPSZ],
     FALLBACK_FONT,
 )
 
