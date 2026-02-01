@@ -80,10 +80,10 @@ FONT_MED = _resolve_font_path(
     FALLBACK_FONT,
 )
 
-RIGHT_BG = (12, 12, 12)
-TEXT_PRIMARY = (235, 235, 235)
-TEXT_SECONDARY = (200, 200, 200)
-TEXT_TERTIARY = (150, 150, 150)
+RIGHT_BG = (16, 18, 20)
+TEXT_PRIMARY = (232, 234, 236)
+TEXT_SECONDARY = (182, 186, 190)
+TEXT_TERTIARY = (132, 136, 140)
 
 SPLIT_OUTER = 36           # outer margin around content
 SPLIT_GAP = 46             # gap between art and right column
