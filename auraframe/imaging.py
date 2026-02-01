@@ -1,3 +1,4 @@
+import logging
 import random
 from typing import List, Optional, Tuple
 
@@ -32,6 +33,8 @@ from .config import (
     TITLE_TRACKING_MIN_PX,
     TITLE_TRACKING_PX,
 )
+
+_LAYOUT_LOG = logging.getLogger("auraframe.layout")
 
 
 def list_slideshow_images() -> List[str]:
@@ -105,12 +108,12 @@ def wrap_text_lines(
     max_w: int,
     draw: ImageDraw.ImageDraw,
     max_lines: int,
-) -> List[str]:
+) -> Tuple[List[str], bool]:
     if not text:
-        return []
+        return [], False
     words = text.split()
     if not words:
-        return []
+        return [], False
     lines: List[str] = []
     idx = 0
     while idx < len(words) and len(lines) < max_lines:
@@ -124,16 +127,14 @@ def wrap_text_lines(
                 break
         line = " ".join(line_words)
         lines.append(line)
-    if idx < len(words) and lines:
-        remaining = " ".join([lines[-1]] + words[idx:])
-        lines[-1] = ellipsize_pil(remaining, font, max_w, draw)
+    overflowed = idx < len(words)
     cleaned = []
     for line in lines:
         if draw.textlength(line, font=font) > max_w:
             cleaned.append(ellipsize_pil(line, font, max_w, draw))
         else:
             cleaned.append(line)
-    return cleaned
+    return cleaned, overflowed
 
 
 def wrap_text_tokens(
@@ -142,9 +143,9 @@ def wrap_text_tokens(
     max_w: int,
     draw: ImageDraw.ImageDraw,
     max_lines: int,
-) -> List[str]:
+) -> Tuple[List[str], bool]:
     if not tokens:
-        return []
+        return [], False
     lines: List[str] = []
     idx = 0
     while idx < len(tokens) and len(lines) < max_lines:
@@ -157,16 +158,14 @@ def wrap_text_tokens(
             else:
                 break
         lines.append(" ".join(line_tokens))
-    if idx < len(tokens) and lines:
-        remaining = " ".join([lines[-1]] + tokens[idx:])
-        lines[-1] = ellipsize_pil(remaining, font, max_w, draw)
+    overflowed = idx < len(tokens)
     cleaned = []
     for line in lines:
         if draw.textlength(line, font=font) > max_w:
             cleaned.append(ellipsize_pil(line, font, max_w, draw))
         else:
             cleaned.append(line)
-    return cleaned
+    return cleaned, overflowed
 
 
 def split_parenthetical(title: str) -> Tuple[str, str]:
@@ -185,14 +184,14 @@ def wrap_title_lines(
     max_w: int,
     draw: ImageDraw.ImageDraw,
     max_lines: int = 2,
-) -> List[str]:
+) -> Tuple[List[str], bool]:
     main, paren = split_parenthetical(title)
     if not paren:
         return wrap_text_lines(title, font, max_w, draw, max_lines=max_lines)
     tokens = main.split()
     tokens.append(paren)
-    lines = wrap_text_tokens(tokens, font, max_w, draw, max_lines=max_lines)
-    return lines
+    lines, overflowed = wrap_text_tokens(tokens, font, max_w, draw, max_lines=max_lines)
+    return lines, overflowed
 
 
 def draw_text_with_tracking(
@@ -244,23 +243,28 @@ def make_split_nowplaying_surface(
     year: str,
 ) -> pygame.Surface:
     sw, sh = screen_size
+    scale = min(sw / 1280, sh / 800)
+
+    def scaled(value: float) -> int:
+        return max(1, int(round(value * scale)))
 
     canvas = Image.new("RGBA", (sw, sh), RIGHT_BG + (255,))
     draw = ImageDraw.Draw(canvas)
 
-    outer = SPLIT_OUTER
-    gap = SPLIT_GAP
+    outer = scaled(SPLIT_OUTER)
+    gap = scaled(SPLIT_GAP)
 
     art_size_by_h = sh - 2 * outer
     art_size_by_w = int(sw * SPLIT_ART_W_FRAC)
-    art_size = max(240, min(art_size_by_h, art_size_by_w))  # keep sane minimum
+    art_size = max(scaled(240), min(art_size_by_h, art_size_by_w))  # keep sane minimum
 
     art_x = outer
     art_y = (sh - art_size) // 2
 
     right_x = art_x + art_size + gap
     right_w = sw - right_x
-    right_pad = RIGHT_PAD
+    right_pad = scaled(RIGHT_PAD)
+    right_gap = scaled(RIGHT_GAP)
 
     # Load art, center-crop square, resize
     img0 = Image.open(cover_path).convert("RGB")
@@ -275,15 +279,15 @@ def make_split_nowplaying_surface(
     canvas = add_shadow_rgba(
         canvas,
         (art_x, art_y, art_size, art_size),
-        ROUNDED_RADIUS,
-        SHADOW_OFFSET,
-        SHADOW_BLUR,
+        scaled(ROUNDED_RADIUS),
+        (scaled(SHADOW_OFFSET[0]), scaled(SHADOW_OFFSET[1])),
+        scaled(SHADOW_BLUR),
         SHADOW_ALPHA,
     )
     # IMPORTANT: canvas is now a new image; recreate draw handle
     draw = ImageDraw.Draw(canvas)
 
-    art_rounded = rounded_image_rgba(img0, ROUNDED_RADIUS)
+    art_rounded = rounded_image_rgba(img0, scaled(ROUNDED_RADIUS))
     canvas.paste(art_rounded, (art_x, art_y), art_rounded)
 
     # Right panel block
@@ -294,10 +298,13 @@ def make_split_nowplaying_surface(
     draw.line((right_x, 0, right_x, sh), fill=(35, 35, 35, 255), width=2)
 
     # Fonts
-    title_px = min(TITLE_SIZE_BASE, TITLE_SIZE_MAX)
-    artist_px = ARTIST_SIZE
-    meta_px = META_SIZE
-    kicker_px = KICKER_SIZE
+    title_px = min(scaled(TITLE_SIZE_BASE), scaled(TITLE_SIZE_MAX))
+    title_px_min = scaled(TITLE_SIZE_MIN)
+    title_tracking_px = scaled(TITLE_TRACKING_PX)
+    title_tracking_min_px = scaled(TITLE_TRACKING_MIN_PX)
+    artist_px = scaled(ARTIST_SIZE)
+    meta_px = scaled(META_SIZE)
+    kicker_px = scaled(KICKER_SIZE)
 
     text_max_w = max(50, right_w - 2 * right_pad)
     x0 = right_x + right_pad
@@ -307,7 +314,7 @@ def make_split_nowplaying_surface(
     f_artist = ImageFont.truetype(FONT_REG, size=artist_px)
     f_meta = ImageFont.truetype(FONT_REG, size=meta_px)
     f_kicker = ImageFont.truetype(FONT_REG, size=kicker_px)
-    title_lines = wrap_title_lines(title, f_title, text_max_w, draw, max_lines=2)
+    title_lines, _ = wrap_title_lines(title, f_title, text_max_w, draw, max_lines=2)
     artist_fit = ellipsize_pil(artist, f_artist, text_max_w, draw)
     meta_text = album or ""
     if year:
@@ -322,52 +329,74 @@ def make_split_nowplaying_surface(
     title_h = text_h("Ag", f_title)
     artist_h = text_h("Ag", f_artist)
     meta_h = text_h("Ag", f_meta)
-    title_gap = int(RIGHT_GAP * 0.6)
+    title_gap = int(right_gap * 0.6)
     title_block_h = title_h * max(1, len(title_lines))
     if len(title_lines) > 1:
         title_block_h += title_gap * (len(title_lines) - 1)
 
     allowed_title_h = int(sh * TITLE_BLOCK_MAX_RATIO)
     if title_block_h > allowed_title_h:
-        while title_block_h > allowed_title_h and title_px > TITLE_SIZE_MIN:
-            title_px = max(TITLE_SIZE_MIN, title_px - 2)
+        shrink_step = max(1, scaled(2))
+        while title_block_h > allowed_title_h and title_px > title_px_min:
+            title_px = max(title_px_min, title_px - shrink_step)
             f_title = ImageFont.truetype(FONT_MED, size=title_px)
             title_h = text_h("Ag", f_title)
-            title_lines = wrap_title_lines(title, f_title, text_max_w, draw, max_lines=2)
+            title_lines, _ = wrap_title_lines(
+                title,
+                f_title,
+                text_max_w,
+                draw,
+                max_lines=2,
+            )
             title_block_h = title_h * max(1, len(title_lines))
             if len(title_lines) > 1:
                 title_block_h += title_gap * (len(title_lines) - 1)
         if title_block_h > allowed_title_h and title_lines:
-            title_lines[-1] = ellipsize_pil(title_lines[-1], f_title, text_max_w, draw)
+            last_line = title_lines[-1]
+            if not last_line.endswith("…"):
+                last_line = f"{last_line}…"
+            title_lines[-1] = ellipsize_pil(last_line, f_title, text_max_w, draw)
+
+    _LAYOUT_LOG.info(
+        "layout title: screen_w=%s screen_h=%s text_col_w=%s chosen_title_size=%s title_lines=%s "
+        "title_block_h=%s allowed_h=%s",
+        sw,
+        sh,
+        text_max_w,
+        title_px,
+        title_lines,
+        title_block_h,
+        allowed_title_h,
+    )
 
     block_h = (
         kicker_h
-        + int(RIGHT_GAP * 1.1)
+        + int(right_gap * 1.1)
         + title_block_h
-        + int(RIGHT_GAP * 1.0)
+        + int(right_gap * 1.0)
         + artist_h
-        + int(RIGHT_GAP * 1.4)
+        + int(right_gap * 1.4)
         + meta_h
     )
     y = (sh - block_h) // 2
 
     # Dot + kicker
-    dot_r = DOT_SIZE // 2
+    dot_r = scaled(DOT_SIZE) // 2
     dot_cx = x0 + dot_r
     dot_cy = y + kicker_h // 2
     draw.ellipse((dot_cx - dot_r, dot_cy - dot_r, dot_cx + dot_r, dot_cy + dot_r), fill=accent + (255,))
-    draw.text((x0 + DOT_SIZE + 12, y), kicker, font=f_kicker, fill=TEXT_TERTIARY + (255,))
+    draw.text((x0 + scaled(DOT_SIZE) + scaled(12), y), kicker, font=f_kicker, fill=TEXT_TERTIARY + (255,))
 
-    y += kicker_h + int(RIGHT_GAP * 1.1)
+    y += kicker_h + int(right_gap * 1.1)
     for idx, line in enumerate(title_lines or [""]):
-        tracking = TITLE_TRACKING_PX if title_px >= TITLE_TRACKING_MIN_PX else 0
+        tracking = title_tracking_px if title_px >= title_tracking_min_px else 0
         draw_text_with_tracking(draw, (x0, y), line, f_title, TEXT_PRIMARY + (255,), tracking)
         y += title_h
         if idx < len(title_lines) - 1:
             y += title_gap
-    y += int(RIGHT_GAP * 1.0)
+    y += int(right_gap * 1.0)
     draw.text((x0, y), artist_fit, font=f_artist, fill=TEXT_SECONDARY + (255,))
-    y += artist_h + int(RIGHT_GAP * 1.4)
+    y += artist_h + int(right_gap * 1.4)
     if meta_fit:
         draw.text((x0, y), meta_fit, font=f_meta, fill=TEXT_TERTIARY + (255,))
 
