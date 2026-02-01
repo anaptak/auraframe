@@ -208,18 +208,43 @@ def make_split_nowplaying_surface(
     # Divider line
     draw.line((right_x, 0, right_x, sh), fill=(35, 35, 35, 255), width=2)
 
+    def measure_text_width(text: str, font: ImageFont.FreeTypeFont) -> float:
+        if not text:
+            return 0.0
+        return draw.textlength(text, font=font)
+
+    base_title_px = max(38, min(68, int(sh * 0.085)))
+
+    def scaled_title_px(title_text: str, has_subtitle: bool, max_width: int) -> int:
+        base_px = base_title_px
+        max_px = max(base_px, min(110, int(sh * 0.14)))
+        if not title_text:
+            return base_px
+
+        target_fill = 0.88 * max_width
+        step = 2
+        best_px = base_px
+        size = base_px
+        max_lines = 2 if has_subtitle else 3
+        while size <= max_px:
+            font = ImageFont.truetype(FONT_SEMI, size=size)
+            lines = wrap_text_lines(title_text, font, max_width, draw, max_lines=max_lines)
+            if not lines:
+                break
+            max_line_w = max(measure_text_width(line, font) for line in lines)
+            if max_line_w > max_width:
+                break
+            best_px = size
+            if max_line_w >= target_fill:
+                break
+            size += step
+        return best_px
+
     # Fonts
-    title_px = max(38, min(68, int(sh * 0.085)))
+    title_px = base_title_px
     artist_px = max(22, min(38, int(sh * 0.052)))
     meta_px = max(16, min(28, int(sh * 0.040)))
     kicker_px = max(14, min(20, int(sh * 0.032)))
-    subtitle_px = max(24, min(title_px - 4, int(title_px * 0.82)))
-
-    f_title = ImageFont.truetype(FONT_SEMI, size=title_px)
-    f_title_sub = ImageFont.truetype(FONT_REG, size=subtitle_px)
-    f_artist = ImageFont.truetype(FONT_REG, size=artist_px)
-    f_meta = ImageFont.truetype(FONT_REG, size=meta_px)
-    f_kicker = ImageFont.truetype(FONT_SEMI, size=kicker_px)
 
     text_max_w = max(50, right_w - 2 * right_pad)
     x0 = right_x + right_pad
@@ -232,6 +257,22 @@ def make_split_nowplaying_surface(
         if split_idx > 0:
             title_main = title[:split_idx].strip()
             subtitle = title[split_idx + 1 :].strip()
+
+    if subtitle:
+        base_title_font = ImageFont.truetype(FONT_SEMI, size=title_px)
+        title_lines_full = wrap_text_lines(title, base_title_font, text_max_w, draw, max_lines=2)
+        if len(title_main) <= 12 and len(title_lines_full) <= 2:
+            title_main = title
+            subtitle = ""
+
+    title_px = scaled_title_px(title_main, bool(subtitle), text_max_w)
+    subtitle_px = max(24, min(title_px - 4, int(title_px * 0.82)))
+
+    f_title = ImageFont.truetype(FONT_SEMI, size=title_px)
+    f_title_sub = ImageFont.truetype(FONT_REG, size=subtitle_px)
+    f_artist = ImageFont.truetype(FONT_REG, size=artist_px)
+    f_meta = ImageFont.truetype(FONT_REG, size=meta_px)
+    f_kicker = ImageFont.truetype(FONT_SEMI, size=kicker_px)
     title_lines = wrap_text_lines(title_main, f_title, text_max_w, draw, max_lines=2 if subtitle else 3)
     subtitle_lines = wrap_text_lines(subtitle, f_title_sub, text_max_w, draw, max_lines=1)
     artist_fit = ellipsize_pil(artist, f_artist, text_max_w, draw)
