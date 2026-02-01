@@ -291,7 +291,7 @@ def make_split_nowplaying_surface(
     artist_h = text_h("Ag", f_artist)
     meta_h = text_h("Ag", f_meta)
     title_gap = int(RIGHT_GAP * 0.4)
-    title_to_artist_gap = int(RIGHT_GAP * 1.1)
+    title_to_artist_gap = int(RIGHT_GAP * 1.6)
     artist_to_meta_gap = int(RIGHT_GAP * 1.3)
     title_block_h = title_h * max(1, len(title_lines))
     if len(title_lines) > 1:
