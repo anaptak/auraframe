@@ -5,7 +5,7 @@ import time
 import pygame
 
 from .audio import ensure_dirs
-from .config import COVER_PATH, CROSSFADE_MS, FPS, FULLSCREEN, RIGHT_BG, SLIDESHOW_INTERVAL_S
+from .config import COVER_PATH, CROSSFADE_MS, FONT_MED, FPS, FULLSCREEN, RIGHT_BG, SLIDESHOW_INTERVAL_S
 from .imaging import (
     crossfade,
     list_slideshow_images,
@@ -43,7 +43,7 @@ def main():
     sw, sh = screen.get_size()
 
     # Button font (pygame)
-    button_font = pygame.font.SysFont("Arial", int(sh * 0.038), bold=True)
+    button_font = pygame.font.Font(FONT_MED, int(sh * 0.038))
 
     # Overlay button geometry (top-right)
     button_rect = overlay_geometry((sw, sh))
