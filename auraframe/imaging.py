@@ -3,7 +3,7 @@ import random
 from typing import List, Optional, Tuple
 
 import pygame
-from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from .config import (
     DOT_SIZE,
@@ -14,9 +14,6 @@ from .config import (
     RIGHT_PAD,
     ART_BORDER_INSET,
     ROUNDED_RADIUS,
-    SHADOW_ALPHA,
-    SHADOW_BLUR,
-    SHADOW_OFFSET,
     SLIDESHOW_DIR,
     SPLIT_ART_W_FRAC,
     SPLIT_GAP,
@@ -71,17 +68,6 @@ def rounded_image_rgba(img: Image.Image, radius: int) -> Image.Image:
     out = Image.new("RGBA", img.size, (0, 0, 0, 0))
     out.paste(img, (0, 0), mask=mask)
     return out
-
-
-def add_shadow_rgba(base: Image.Image, rect, radius, offset, blur, alpha) -> Image.Image:
-    x, y, w, h = rect
-    shadow = Image.new("RGBA", base.size, (0, 0, 0, 0))
-    sd = ImageDraw.Draw(shadow)
-    sx = x + offset[0]
-    sy = y + offset[1]
-    sd.rounded_rectangle((sx, sy, sx + w, sy + h), radius=radius, fill=(0, 0, 0, alpha))
-    shadow = shadow.filter(ImageFilter.GaussianBlur(blur))
-    return Image.alpha_composite(base, shadow)
 
 
 def ellipsize_pil(text: str, font: ImageFont.FreeTypeFont, max_w: int, draw: ImageDraw.ImageDraw) -> str:
@@ -276,18 +262,6 @@ def make_split_nowplaying_surface(
     img0 = img0.resize((art_size, art_size), Image.Resampling.LANCZOS)
 
     accent = pick_accent_simple(img0)
-
-    # Shadow + rounded art
-    canvas = add_shadow_rgba(
-        canvas,
-        (art_x, art_y, art_size, art_size),
-        scaled(ROUNDED_RADIUS),
-        (scaled(SHADOW_OFFSET[0]), scaled(SHADOW_OFFSET[1])),
-        scaled(SHADOW_BLUR),
-        SHADOW_ALPHA,
-    )
-    # IMPORTANT: canvas is now a new image; recreate draw handle
-    draw = ImageDraw.Draw(canvas)
 
     art_rounded = rounded_image_rgba(img0, scaled(ROUNDED_RADIUS))
     canvas.paste(art_rounded, (art_x, art_y), art_rounded)
